@@ -1,6 +1,9 @@
 package org.example;
 
-import org.w3c.dom.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -15,39 +18,33 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class ParserXML {
-    SimpleDateFormat sdf =  new java.text.SimpleDateFormat("yyyy-MM-dd");
-    public  List<AsAddrObj> parseAsAddrObj(File filepath) throws ParserConfigurationException, IOException, SAXException {
+public class ParserXMLItems {
+    SimpleDateFormat sdf =  new SimpleDateFormat("yyyy-MM-dd");
+    public List<AsAdmHierarchy> parseAsAddrObj(File filepath) throws ParserConfigurationException, IOException, SAXException {
         File xmlFile = filepath;
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder;
         builder = factory.newDocumentBuilder();
         Document doc = builder.parse(xmlFile);
-        // получаем узлы с именем SALE
+        // получаем узлы с именем OBJECT
         // теперь XML полностью загружен в память
         // в виде объекта Document
-        NodeList nodeList =  doc.getElementsByTagName("OBJECT");
+        NodeList nodeList =  doc.getElementsByTagName("ITEM");
 
-
-        // создадим из него список объектов AsAddrObj
-        List<AsAddrObj> addrObjList;
+        // создадим из него список объектов
+        List<AsAdmHierarchy> addrObjList;
         Stream<Node> nodeStream = IntStream.range(0, nodeList.getLength()).mapToObj(nodeList::item);
-
-        addrObjList = nodeStream.map(node -> getAddrObj(node)).collect(Collectors.toList());
+        addrObjList = nodeStream.map(node -> getAddrItem(node)).collect(Collectors.toList());
         return addrObjList;
     }
-    // создаем из узла документа объект Sale
-    private  AsAddrObj getAddrObj(Node node)  {
-        AsAddrObj addrObj = new AsAddrObj();
+    // создаем из узла документа объект OBJECT
+    private AsAdmHierarchy getAddrItem(Node node)  {
+        AsAdmHierarchy addrObj = new AsAdmHierarchy();
         if (node.getNodeType() == Node.ELEMENT_NODE) {
             addrObj.setId(Long.parseLong(getAtrValue("ID", node)));
             addrObj.setObjectId(Long.parseLong(getAtrValue("OBJECTID", node)));
-            addrObj.setObjectGUID(getAtrValue("OBJECTGUID",node));
+            addrObj.setParentObjId(Long.parseLong(getAtrValue("PARENTOBJID",node)));
             addrObj.setChangeId(Long.parseLong(getAtrValue("CHANGEID",node)));
-            addrObj.setName(getAtrValue("NAME",node));
-            addrObj.setTypeName(getAtrValue("TYPENAME",node));
-            addrObj.setLevel(Integer.parseInt(getAtrValue("LEVEL",node)));
-            addrObj.setOperTypeId(Integer.parseInt(getAtrValue("OPERTYPEID",node)));
             addrObj.setPrevId(Long.parseLong(getAtrValue("PREVID",node)));
             addrObj.setNextId(Long.parseLong(getAtrValue("NEXTID",node)));
 
@@ -56,23 +53,16 @@ public class ParserXML {
                 addrObj.setStartDate(sdf.parse(getAtrValue("STARTDATE",node) ));
                 addrObj.setEndDate(sdf.parse(getAtrValue("ENDDATE",node) ));
             } catch (ParseException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
-            addrObj.setIsActual(getAtrValue("ISACTUAL",node).equals("1")?true:false);
-            addrObj.setIsActive(getAtrValue("ISACTIVE",node).equals("1")?true:false);
+
+            addrObj.setActive(getAtrValue("ISACTIVE",node).equals("1")?true:false);
         }
 
         return addrObj;
     }
 
-    // получаем значение элемента по указанному тегу
-    private  String getTagValue(String tag, Element element) {
-        NodeList nodeList = element.getElementsByTagName(tag).item(0).getChildNodes();
-        Node node = (Node) nodeList.item(0);
-        return node.getNodeValue();
-    }
-
-    // получаем значение элемента по указанному тегу
+    // получаем значение атирибута по указанному имени
     private  String getAtrValue(String atr, Node obj) {
         NamedNodeMap attr = obj.getAttributes();
         if (null != attr) {
@@ -85,4 +75,5 @@ public class ParserXML {
         }
         return null;
     }
+
 }
